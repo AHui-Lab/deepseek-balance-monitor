@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import tkinter as tk, json, os, threading, math, subprocess, sys
+from tkinter import messagebox, simpledialog
 import requests
 try:
     from deepseek_tracker import get_today_stats
@@ -49,7 +50,10 @@ class App(tk.Tk):
         self.geometry(f"{WW}x{HE}+{sw-WW-m}+{sh-HE-m-48}")
         self._ui()
         self._ev()
-        threading.Thread(target=self._fr, daemon=True).start()
+        if self._key:
+            threading.Thread(target=self._fr, daemon=True).start()
+        else:
+            self.after(200, self._prompt_api_key)
         self.after(REFRESH * 1000, self._ar)
         self.after(3000, self._refresh_monthly)
         self.after(MONTHLY_REFRESH * 1000, self._ar_monthly)
@@ -65,6 +69,45 @@ class App(tk.Tk):
                     self._model = cfg.get("model", self._model)
         except:
             pass
+
+    def _prompt_api_key(self):
+        key = simpledialog.askstring(
+            "DeepSeek API Key",
+            "Paste your DeepSeek API key:",
+            parent=self,
+            show="*",
+        )
+        if not key:
+            self._up({}, "No API key. Right-click and choose Set API Key.")
+            return
+        self._key = key.strip()
+        if not self._key:
+            self._up({}, "No API key. Right-click and choose Set API Key.")
+            return
+        self._save_config()
+        threading.Thread(target=self._fr, daemon=True).start()
+
+    def _save_config(self):
+        cfg = {}
+        example = os.path.join(BASE, "deepseek_config.example.json")
+        try:
+            if os.path.exists(CFG):
+                with open(CFG, "r", encoding="utf-8-sig") as f:
+                    cfg = json.load(f)
+            elif os.path.exists(example):
+                with open(example, "r", encoding="utf-8-sig") as f:
+                    cfg = json.load(f)
+        except (OSError, ValueError, TypeError):
+            cfg = {}
+        cfg["api_key"] = self._key
+        cfg.setdefault("model", self._model)
+        with open(CFG, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+        messagebox.showinfo(
+            "Saved",
+            "API key saved to local deepseek_config.json.",
+            parent=self,
+        )
 
     def _ui(self):
         # Main container with rounded-rect via canvas
@@ -290,6 +333,7 @@ class App(tk.Tk):
                      activeforeground=BG, font=("Segoe UI", 9))
         m.add_command(label="Refresh",
                        command=lambda: threading.Thread(target=self._fr, daemon=True).start())
+        m.add_command(label="Set API Key", command=self._prompt_api_key)
         m.add_separator()
         m.add_command(label="Exit", command=self.destroy)
         m.post(e.x_root, e.y_root)

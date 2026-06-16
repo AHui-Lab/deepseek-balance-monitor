@@ -25,7 +25,9 @@ pip install -r requirements.txt
 
 ## 配置 API Key
 
-推荐使用环境变量，避免把密钥写进项目文件。
+首次启动桌面悬浮窗时，如果没有检测到 API Key，程序会弹窗让你输入，并保存到本地 `deepseek_config.json`。该文件已加入 `.gitignore`，不会被提交。
+
+也可以使用环境变量，避免把密钥写进项目文件。
 
 PowerShell:
 
@@ -53,6 +55,8 @@ Windows 用户也可以双击：
 ```text
 launch_monitor.vbs
 ```
+
+如果提示 `No API key`，右键悬浮窗选择 `Set API Key`，或重新启动后在弹窗中输入 key。
 
 ## 月度用量
 
