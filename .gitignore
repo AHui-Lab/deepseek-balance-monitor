@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+
+# Local secrets and runtime data
+deepseek_config.json
+deepseek_usage.json
+
+# Local machine artifacts
+*.lnk
+chrome_debug_stdout.txt
+chrome_debug_stderr.txt
+
+# Editor/OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

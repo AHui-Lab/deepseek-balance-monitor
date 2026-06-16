@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepSeek Balance</title>
+<style>
+  :root {
+    --bg: #0a0a14;
+    --card: rgba(18, 18, 40, 0.85);
+    --border: rgba(255, 255, 255, 0.06);
+    --text: #e2e2f0;
+    --muted: #8888aa;
+    --blue: #7aa2f7;
+    --green: #9ece6a;
+    --yellow: #e0af68;
+    --red: #f7768e;
+    --glow-green: rgba(158, 206, 106, 0.3);
+    --glow-yellow: rgba(224, 175, 104, 0.3);
+    --glow-red: rgba(247, 118, 142, 0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 20%, rgba(122, 162, 247, 0.08), transparent),
+      radial-gradient(ellipse 60% 50% at 80% 70%, rgba(158, 206, 106, 0.05), transparent);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    overflow-x: hidden;
+  }
+
+  .ambient {
+    position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.12; pointer-events: none; z-index: 0;
+  }
+  .ambient.a1 { width: 260px; height: 260px; background: var(--blue); top: -60px; left: -80px; animation: drift1 12s ease-in-out infinite; }
+  .ambient.a2 { width: 200px; height: 200px; background: var(--green); bottom: -60px; right: -60px; animation: drift2 10s ease-in-out infinite; }
+  .ambient.a3 { width: 140px; height: 140px; background: var(--yellow); top: 50%; left: 50%; animation: drift3 14s ease-in-out infinite; }
+
+  @keyframes drift1 { 0%, 100% { transform: translate(0, 0); } 33% { transform: translate(40px, 30px); } 66% { transform: translate(-20px, -20px); } }
+  @keyframes drift2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-30px, -40px); } }
+  @keyframes drift3 { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(calc(-50% + 30px), calc(-50% - 20px)); } }
+
+  .card {
+    position: relative; z-index: 1;
+    width: 400px; max-width: 100%;
+    background: var(--card);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 28px 24px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+    transition: box-shadow 0.8s ease;
+  }
+  .card.ok    { box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 32px var(--glow-green), 0 0 0 1px rgba(255,255,255,0.03) inset; }
+  .card.warn  { box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 32px var(--glow-yellow), 0 0 0 1px rgba(255,255,255,0.03) inset; }
+  .card.error { box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 32px var(--glow-red), 0 0 0 1px rgba(255,255,255,0.03) inset; }
+
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue), #5d7fd6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: #fff;
+  }
+  .header-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--muted); transition: all 0.5s ease;
+    box-shadow: 0 0 0 0 transparent;
+  }
+  .status-dot.ok    { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot.warn  { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  .status-dot.error { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  .balance-section {
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px; position: relative;
+  }
+  .balance-ring {
+    position: relative; width: 160px; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .balance-ring svg {
+    position: absolute; top: 0; left: 0; transform: rotate(-90deg);
+  }
+  .ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 6; }
+  .ring-fg {
+    fill: none; stroke-width: 6; stroke-linecap: round;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.6s ease;
+  }
+  .balance-number {
+    font-size: 38px; font-weight: 800; letter-spacing: -0.02em;
+    color: var(--text); transition: color 0.6s ease;
+    line-height: 1.1; text-align: center;
+  }
+  .balance-number.ok    { color: var(--green); text-shadow: 0 0 28px var(--glow-green); }
+  .balance-number.warn  { color: var(--yellow); text-shadow: 0 0 28px var(--glow-yellow); }
+  .balance-number.error { color: var(--red); text-shadow: 0 0 28px var(--glow-red); }
+  .balance-currency { font-size: 16px; font-weight: 500; opacity: 0.7; display: block; }
+
+  .status-text {
+    text-align: center; font-size: 13px; color: var(--muted);
+    margin-bottom: 16px; min-height: 20px; transition: color 0.4s;
+  }
+
+  .split-section { margin-bottom: 16px; }
+  .split-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .split-label {
+    font-size: 11px; font-weight: 500; color: var(--muted);
+    min-width: 64px; text-align: right; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .split-bar-wrap {
+    flex: 1; height: 7px; background: rgba(255,255,255,0.04); border-radius: 4px; overflow: hidden;
+  }
+  .split-bar {
+    height: 100%; border-radius: 4px; transition: width 0.8s ease;
+  }
+  .split-bar.granted { background: linear-gradient(90deg, var(--blue), #5d7fd6); }
+  .split-bar.topped  { background: linear-gradient(90deg, #7dcfff, var(--blue)); }
+  .split-val {
+    font-size: 12px; font-weight: 600; color: var(--text); min-width: 80px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .usage-section {
+    border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; margin-bottom: 14px;
+  }
+  .usage-title {
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; text-align: center; margin-bottom: 10px;
+  }
+  .usage-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  }
+  .usage-item {
+    background: rgba(255,255,255,0.03); border-radius: 10px; padding: 10px 8px; text-align: center;
+  }
+  .usage-value {
+    font-size: 18px; font-weight: 700; color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .usage-label {
+    font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
+  .actions { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
+  .btn {
+    padding: 9px 22px; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; background: rgba(255,255,255,0.04);
+    color: var(--text); font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.3s ease; outline: none;
+    backdrop-filter: blur(8px);
+  }
+  .btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .footer {
+    text-align: center; font-size: 11px; color: rgba(255,255,255,0.18);
+  }
+
+  .setup-area { text-align: center; }
+  .setup-area input {
+    width: 100%; padding: 12px 16px; margin-bottom: 12px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; color: var(--text); font-family: inherit; font-size: 13px;
+    outline: none; transition: border-color 0.3s;
+  }
+  .setup-area input:focus { border-color: var(--blue); }
+  .setup-area input::placeholder { color: rgba(255,255,255,0.2); }
+
+  .hidden { display: none !important; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .loading { animation: pulse 1.5s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<div class="ambient a1"></div>
+<div class="ambient a2"></div>
+<div class="ambient a3"></div>
+
+<div class="card" id="card">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">DS</div>
+      <div class="header-title">DeepSeek Balance</div>
+    </div>
+    <div class="status-dot" id="dot"></div>
+  </div>
+
+  <div class="balance-section">
+    <div class="balance-ring" id="ringWrap">
+      <svg width="160" height="160" viewBox="0 0 160 160">
+        <circle class="ring-bg" cx="80" cy="80" r="68"/>
+        <circle class="ring-fg" id="ringFg" cx="80" cy="80" r="68"
+                stroke-dasharray="427.26" stroke-dashoffset="427.26"/>
+      </svg>
+    </div>
+    <div class="balance-number" id="balance" style="position:absolute;">
+      <span id="balVal">---</span>
+      <span class="balance-currency" id="balCur"></span>
+    </div>
+  </div>
+
+  <div class="status-text" id="info">Loading...</div>
+
+  <div class="split-section" id="splitSection">
+    <div class="split-row">
+      <div class="split-label">`Granted`</div>
+      <div class="split-bar-wrap"><div class="split-bar granted" id="barGranted" style="width:0%"></div></div>
+      <div class="split-val" id="valGranted">--</div>
+    </div>
+    <div class="split-row">
+      <div class="split-label">`Topped Up`</div>
+      <div class="split-bar-wrap"><div class="split-bar topped" id="barTopped" style="width:0%"></div></div>
+      <div class="split-val" id="valTopped">--</div>
+    </div>
+  </div>
+
+  <div class="usage-section" id="usageSection">
+    <div class="usage-title">Monthly (v4-pro)</div>
+    <div class="usage-grid">
+      <div class="usage-item">
+        <div class="usage-value" id="uTokens">--</div>
+        <div class="usage-label">Tokens</div>
+      </div>
+      <div class="usage-item">
+        <div class="usage-value" id="uRequests">--</div>
+        <div class="usage-label">Requests</div>
+      </div>
+      <div class="usage-item">
+        <div class="usage-value" id="uCost">--</div>
+        <div class="usage-label">Cost</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions" id="actions">
+    <button class="btn" onclick="refresh()">Refresh</button>
+  </div>
+
+  <div class="footer" id="footer">Auto-refresh: 60s</div>
+
+  <div class="setup-area hidden" id="setup">
+    <input type="password" id="keyInput" placeholder="Paste your DeepSeek API key">
+    <button class="btn" onclick="saveKey()" style="width:100%;">Connect</button>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://api.deepseek.com/user/balance';
+const KS = 'deepseek_monitor_key';
+const RING_LEN = 2 * Math.PI * 68;
+
+function getKey() { return localStorage.getItem(KS) || ''; }
+function saveKey() {
+  const k = document.getElementById('keyInput').value.trim();
+  if (!k) return;
+  localStorage.setItem(KS, k);
+  init();
+}
+
+function setState(state) {
+  document.getElementById('card').className = 'card ' + state;
+  document.getElementById('dot').className = 'status-dot ' + state;
+  document.getElementById('balance').className = 'balance-number ' + state;
+}
+
+function setRing(pct) {
+  const ring = document.getElementById('ringFg');
+  const offset = RING_LEN * (1 - pct);
+  ring.style.strokeDashoffset = offset;
+  if (pct >= 0.5) ring.style.stroke = '#9ece6a';
+  else if (pct >= 0.1) ring.style.stroke = '#e0af68';
+  else ring.style.stroke = '#f7768e';
+}
+
+function init() {
+  const key = getKey();
+  if (!key) {
+    document.getElementById('setup').classList.remove('hidden');
+    document.getElementById('splitSection').classList.add('hidden');
+    document.getElementById('usageSection').classList.add('hidden');
+    document.getElementById('actions').classList.add('hidden');
+    return;
+  }
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('splitSection').classList.remove('hidden');
+  document.getElementById('usageSection').classList.remove('hidden');
+  document.getElementById('actions').classList.remove('hidden');
+  fetchBalance(key);
+}
+
+async function fetchBalance(key) {
+  const k = key || getKey();
+  if (!k) return init();
+
+  document.getElementById('balVal').textContent = '...';
+  document.getElementById('balCur').textContent = '';
+  document.getElementById('info').textContent = 'Fetching...';
+  document.getElementById('balance').classList.add('loading');
+
+  try {
+    const resp = await fetch(API_URL, {
+      headers: { 'Authorization': `Bearer ${k}` }
+    });
+    const now = new Date().toLocaleTimeString();
+
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => '');
+      setState('error');
+      document.getElementById('balVal').textContent = 'Error';
+      document.getElementById('info').textContent = `HTTP ${resp.status}: ${txt}`;
+      document.getElementById('valGranted').textContent = '--';
+      document.getElementById('valTopped').textContent = '--';
+      document.getElementById('barGranted').style.width = '0%';
+      document.getElementById('barTopped').style.width = '0%';
+      setRing(0);
+      document.getElementById('footer').textContent = `Last: ${now}`;
+      return;
+    }
+
+    const data = await resp.json();
+    if (data.is_available && data.balance_infos?.length) {
+      const b = data.balance_infos[0];
+      const t = parseFloat(b.total_balance || 0);
+      const g = parseFloat(b.granted_balance || 0);
+      const tp = parseFloat(b.topped_up_balance || 0);
+      const cur = b.currency || 'CNY';
+      const max = Math.max(g, tp, t, 1);
+      const ringPct = Math.min(1, t / max);
+
+      setState(t > 1 ? 'ok' : 'warn');
+      document.getElementById('balVal').textContent = t.toFixed(2);
+      document.getElementById('balCur').textContent = cur;
+      document.getElementById('info').textContent = 'Balance OK';
+      document.getElementById('valGranted').textContent = `${cur} ${g.toFixed(2)}`;
+      document.getElementById('valTopped').textContent = `${cur} ${tp.toFixed(2)}`;
+      document.getElementById('barGranted').style.width = (g/max*100) + '%';
+      document.getElementById('barTopped').style.width = (tp/max*100) + '%';
+      setRing(ringPct);
+    } else {
+      setState('warn');
+      document.getElementById('balVal').textContent = 'N/A';
+      document.getElementById('info').textContent = 'is_available=false';
+      document.getElementById('valGranted').textContent = '--';
+      document.getElementById('valTopped').textContent = '--';
+      document.getElementById('barGranted').style.width = '0%';
+      document.getElementById('barTopped').style.width = '0%';
+      setRing(0);
+    }
+  } catch (e) {
+    setState('error');
+    document.getElementById('balVal').textContent = 'Error';
+    document.getElementById('info').textContent = e.message || 'Network error';
+    document.getElementById('valGranted').textContent = '--';
+    document.getElementById('valTopped').textContent = '--';
+    document.getElementById('barGranted').style.width = '0%';
+    document.getElementById('barTopped').style.width = '0%';
+    setRing(0);
+  }
+  document.getElementById('balance').classList.remove('loading');
+  document.getElementById('footer').textContent = `Last: ${now} | Auto: 60s`;
+}
+
+function refresh() { fetchBalance(); }
+
+init();
+setInterval(() => { if (getKey()) fetchBalance(); }, 60000);
+</script>
+
+</body>
+</html>

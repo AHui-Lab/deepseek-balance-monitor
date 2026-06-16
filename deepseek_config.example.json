@@ -1,0 +1,26 @@
+{
+  "api_key": "sk-your-deepseek-api-key",
+  "model": "deepseek-chat",
+  "pricing": {
+    "deepseek-v4-pro": {
+      "input": 2.0,
+      "output": 8.0,
+      "cache_hit": 0.2
+    },
+    "deepseek-v4-flash": {
+      "input": 1.0,
+      "output": 4.0,
+      "cache_hit": 0.1
+    },
+    "deepseek-chat": {
+      "input": 1.0,
+      "output": 2.0,
+      "cache_hit": 0.1
+    },
+    "deepseek-reasoner": {
+      "input": 4.0,
+      "output": 16.0,
+      "cache_hit": 0.4
+    }
+  }
+}
